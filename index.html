@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>订单组合优化器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <p class="eyebrow">Browser-Only Optimizer</p>
+      <h1>订单组合优化器</h1>
+      <p class="hero-copy">
+        上传 Excel、拖拽文件，或者直接输入订单金额，浏览器会立刻完成本地分组优化。
+        整个过程不依赖后端服务，适合直接部署到 GitHub Pages。
+      </p>
+      <div class="hero-rules">
+        <div class="rule-card">
+          <span class="rule-index">规则 1</span>
+          <strong>金额大于等于目标值</strong>
+          <p>直接单独成组</p>
+        </div>
+        <div class="rule-card">
+          <span class="rule-index">规则 2</span>
+          <strong>金额小于目标值</strong>
+          <p>使用高效贪心算法尽快凑到满足条件</p>
+        </div>
+        <div class="rule-card">
+          <span class="rule-index">目标</span>
+          <strong>组数优先，溢出次之</strong>
+          <p>尽量形成更多有效分组，同时尽量靠近目标金额</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>上传 Excel</h2>
+          <p>支持 `.xlsx` 和 `.xls`。只需要一列金额，系统会优先识别 `amount` 或 `金额` 列。</p>
+        </div>
+        <label class="upload-zone" id="uploadZone" for="excelFile">
+          <input id="excelFile" type="file" accept=".xlsx,.xls" />
+          <span class="upload-title">拖拽文件到这里，或点击选择 Excel</span>
+          <span class="upload-subtitle">支持直接拖入文件；读取成功后会自动清空手动输入区</span>
+        </label>
+        <div class="file-status" id="fileStatus">还没有选择文件</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>手动输入金额</h2>
+          <p>可使用逗号、空格、分号或换行分隔，例如：`99, 2, 50, 50`。</p>
+        </div>
+        <textarea
+          id="manualInput"
+          rows="8"
+          placeholder="例如：100, 180, 99, 2, 98, 3, 76, 24"
+        ></textarea>
+        <div class="control-stack">
+          <div class="target-row">
+            <label class="target-field" for="targetAmount">
+              <span>目标金额</span>
+              <input id="targetAmount" type="number" min="1" step="0.01" value="100">
+            </label>
+            <button id="randomButton" class="ghost-button" type="button">随机生成测试数据</button>
+          </div>
+          <div class="action-row">
+            <button id="useDemoButton" class="ghost-button" type="button">载入演示数据</button>
+            <button id="exportButton" class="ghost-button" type="button">导出结果为 Excel</button>
+            <button id="optimizeButton" class="primary-button" type="button">开始优化</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-grid" id="summaryGrid">
+      <article class="summary-card">
+        <span class="summary-label">有效分组数</span>
+        <strong id="groupCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">已分组总金额</span>
+        <strong id="groupedAmount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">剩余订单数</span>
+        <strong id="leftoverCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">剩余总金额</span>
+        <strong id="leftoverAmount">0</strong>
+      </article>
+    </section>
+
+    <section class="results">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>分组结果</h2>
+          <p>每组总金额都必须大于等于目标值，页面会显示每组溢出金额。</p>
+        </div>
+        <div id="groupResults" class="result-list empty-state">
+          运行后会在这里显示分组详情。
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>未分组订单</h2>
+          <p>这些金额在当前目标值下无法继续组成有效分组。</p>
+        </div>
+        <div id="leftoverResults" class="result-list empty-state">
+          运行后会在这里显示剩余订单。
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="./optimizer.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
