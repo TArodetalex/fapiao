@@ -22,7 +22,7 @@
 
 body {
   margin: 0;
-  font-family: "Noto Sans SC", sans-serif;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   color: var(--ink);
   background:
     radial-gradient(circle at top left, rgba(197, 106, 26, 0.22), transparent 30%),

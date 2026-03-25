@@ -16,6 +16,7 @@ const leftoverCount = document.getElementById("leftoverCount");
 const leftoverAmount = document.getElementById("leftoverAmount");
 const groupResults = document.getElementById("groupResults");
 const leftoverResults = document.getElementById("leftoverResults");
+const hasExcelEngine = typeof window.XLSX !== "undefined";
 
 let uploadedAmounts = [];
 let latestRun = null;
@@ -96,6 +97,58 @@ function parseExcelAmounts(rows) {
     .map((row, index) => {
       const rawValue = row[targetKey];
       const amount = Number(rawValue);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return null;
+      }
+
+      return {
+        id: `EXCEL-${String(index + 1).padStart(3, "0")}`,
+        amount: Math.round(amount * 100) / 100,
+      };
+    })
+    .filter(Boolean);
+}
+
+function parseExcelMatrix(rows) {
+  if (!rows.length) {
+    return [];
+  }
+
+  const normalizedRows = rows
+    .map((row) => (Array.isArray(row) ? row : []))
+    .filter((row) => row.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""));
+
+  if (!normalizedRows.length) {
+    return [];
+  }
+
+  const headerRow = normalizedRows[0];
+  let amountColumnIndex = headerRow.findIndex((cell) => {
+    const normalized = String(cell ?? "").trim().toLowerCase();
+    return normalized.includes("amount") || normalized.includes("金额");
+  });
+
+  let startRowIndex = 1;
+
+  if (amountColumnIndex === -1) {
+    const numericColumnIndex = headerRow.findIndex((cell) => {
+      const value = Number(cell);
+      return Number.isFinite(value) && value > 0;
+    });
+
+    if (numericColumnIndex !== -1) {
+      amountColumnIndex = numericColumnIndex;
+      startRowIndex = 0;
+    } else {
+      amountColumnIndex = 0;
+    }
+  }
+
+  return normalizedRows
+    .slice(startRowIndex)
+    .map((row, index) => {
+      const amount = Number(row[amountColumnIndex]);
 
       if (!Number.isFinite(amount) || amount <= 0) {
         return null;
@@ -248,6 +301,12 @@ function handleRandomData() {
 }
 
 function readWorkbook(file) {
+  if (!hasExcelEngine) {
+    uploadedAmounts = [];
+    fileStatus.textContent = "Excel 引擎没有成功加载，当前无法读取或导出 Excel。";
+    return;
+  }
+
   const reader = new FileReader();
 
   reader.onload = (loadEvent) => {
@@ -256,8 +315,10 @@ function readWorkbook(file) {
       const workbook = XLSX.read(data, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: null });
-      const parsed = parseExcelAmounts(rows);
+      const matrixRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+      const objectRows = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+      const matrixParsed = parseExcelMatrix(matrixRows);
+      const parsed = matrixParsed.length ? matrixParsed : parseExcelAmounts(objectRows);
 
       if (!parsed.length) {
         uploadedAmounts = [];
@@ -320,6 +381,11 @@ function handleDrop(event) {
 }
 
 function exportResults() {
+  if (!hasExcelEngine) {
+    renderNotice(groupResults, "Excel 引擎没有成功加载，当前无法导出 Excel。");
+    return;
+  }
+
   if (!latestRun) {
     renderNotice(groupResults, "请先运行一次优化，再导出结果。");
     return;
@@ -404,6 +470,10 @@ targetAmountInput.addEventListener("change", () => {
     targetAmountInput.value = TARGET_AMOUNT;
   }
 });
+
+if (!hasExcelEngine) {
+  fileStatus.textContent = "本地 Excel 组件未加载，上传和导出功能暂时不可用。";
+}
 
 renderEmpty(groupResults, "运行后会在这里显示分组详情。");
 renderEmpty(leftoverResults, "运行后会在这里显示剩余订单。");
